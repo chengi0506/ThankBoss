@@ -169,9 +169,7 @@ namespace ThankBoss.Controllers
 
                         //訂單檔路徑
                         string filePath = HttpContext.Current.Server.MapPath("~/Order/input.csv");
-                        
-                        //string filePath = @"\\FCLDWEB\PosVersionService\order\input.csv";
-                        
+                                                
                         // 創建一個動態陣列來存儲檔案內容
                         List<string> linesList = new List<string>();
 
