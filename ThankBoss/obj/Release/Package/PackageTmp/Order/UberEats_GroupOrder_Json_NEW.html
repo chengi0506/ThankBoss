@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JSON Parser</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function(){
+    $("#parseBtn").click(function(){
+        var jsonDataStr = $("#jsonData").val();
+        try {
+            var jsonData = JSON.parse(jsonDataStr); // 將字串轉換成 JavaScript 物件
+			var feedCardsIndex = jsonData.data.orders[0].feedCards.findIndex(function(card) {
+				return card.orderSummary !== undefined;
+			});
+            if (jsonData.data && jsonData.data.orders && jsonData.data.orders[0] && jsonData.data.orders[0].feedCards && jsonData.data.orders[0].feedCards[feedCardsIndex] && jsonData.data.orders[0].feedCards[feedCardsIndex].orderSummary && jsonData.data.orders[0].feedCards[feedCardsIndex].orderSummary.sections) {
+                var parsedData = parseFeedCards(jsonData.data.orders[0].feedCards[feedCardsIndex].orderSummary.sections);
+				$("#StoreName").text(jsonData.data.orders[0].orderInfo.storeInfo.name);
+				$("#activeOrderStatus").text(jsonData.data.orders[0].activeOrderStatus.subtitleSummary.summary.text);
+                displayTable(parsedData); // 輸出表格
+				console.log($("#StoreName").text());
+            } else {
+                console.error("JSON 格式不符合預期，缺少必要的屬性。");
+            }
+        } catch (error) {
+            console.error("解析 JSON 時發生錯誤：", error);
+        }
+    });
+    
+    function parseFeedCards(feedData) {
+        // 創建一個空的陣列來存儲解析後的資料
+        var parsedData = [];
+        
+        // 迭代 feedData 中的每一個部分
+        $.each(feedData, function(index, section) {
+            // 提取訂購人的名稱
+            var buyer = section.header.title;
+            
+            // 迭代該部分中的每一個訂購項目
+            $.each(section.items, function(i, item) {
+                // 提取訂購品項的名稱
+                var itemName = item.title;
+                
+                // 提取訂購數量
+                var quantity = item.quantity;
+                
+                // 提取總金額
+                var totalPrice = item.price.replace(/[^\d.]/g,"");
+                
+                // 將提取的資料組合成一個物件並添加到 parsedData 陣列中
+                parsedData.push({
+                    buyer: buyer,
+                    itemName: itemName,
+                    quantity: quantity,
+                    totalPrice: totalPrice,
+                    discount: 0 // 初始化優惠額為 0
+                });
+            });
+        });
+        
+        // 返回解析後的資料
+        return parsedData;
+    }
+    
+    function displayTable(data) {
+		// 清除之前的表格
+		$("#result").empty();
+		
+		// 創建表格標題行
+		var table = $("<table>").addClass("table");
+		var thead = $("<thead>").appendTo(table);
+		var trHead = $("<tr>").appendTo(thead);
+		$("<th>").text($("#StoreName").text()).appendTo(trHead);
+		$("<th>").text("訂購品項").appendTo(trHead);
+		$("<th>").text("訂購數量").appendTo(trHead);
+		$("<th>").text("原金額").appendTo(trHead);
+		$("<th>").text("優惠額").appendTo(trHead); // 新增優惠額欄位
+		$("<th>").text("應付額").appendTo(trHead); // 新增應付額欄位
+		$("<th>").text("已付").appendTo(trHead); // 新增已付欄位
+		
+		// 添加資料到表格中
+		var tbody = $("<tbody>").appendTo(table);
+		$.each(data, function(index, item) {
+			var tr = $("<tr>").appendTo(tbody);
+			$("<td>").text(item.buyer).appendTo(tr);
+			$("<td>").text(item.itemName).appendTo(tr);
+			$("<td>").text(item.quantity).appendTo(tr);
+			$("<td>").text(item.totalPrice).appendTo(tr);
+			var discountInput = $("<input>").attr("type", "number").attr("step", "0.01").addClass("discount").appendTo($("<td>").appendTo(tr)); // 優惠額輸入框
+			$("<td>").text(item.totalPrice).appendTo(tr); // 初始應付額為原金額
+			$("<td>").append($("<input>").attr("type", "checkbox")).appendTo(tr); // 新增已付欄位
+		});
+		
+		// 將表格加入到結果區域中
+		$("#result").append(table);
+		
+		// 監聽優惠額輸入框的變化事件
+		$(document).on("input", ".discount", function() {
+			// 取得該行的所有 <td> 元素
+			var rowTds = $(this).closest("tr").find("td");
+			
+			// 取得原金額
+			//var originalPrice = parseFloat(rowTds.eq(3).text());
+			var originalPrice = parseFloat(rowTds.eq(3).text().replace(/[^\d.]/g, "").trim());
+
+			// 取得優惠額
+			var discount = parseFloat($(this).val());
+			
+			// 計算應付額
+			var payableAmount = originalPrice - discount;
+			// 更新應付額欄位的顯示值，保留兩位小數
+			rowTds.eq(5).text(payableAmount.toFixed(2));
+		});
+	}
+
+	function Export() {
+		var csvContent = "";	//"data:text/csv;charset=utf-8,";
+	
+		// 添加CSV標題行
+		var headers = [$("#StoreName").text(), "原價","減免額度","減免金額計算", "減免金額", "應付金額","已收","收款人",$("#payee").val(),$("#activeOrderStatus").text()];
+		csvContent += headers.join(",") + "\n";
+		
+		var TotalPrice = 0,TotalDiscount = 0
+		// 獲取表格中的資料行
+		$("#result table tbody tr").each(function () {
+			var row = $(this);
+			var discountInput = row.find("td:eq(4) input");
+			var discountValue = discountInput.val() !== "" ? discountInput.val() : "0"; // 若優惠額為空，則填0
+			var rowData = [
+				row.find("td:eq(0)").text(), // 訂購人
+				row.find("td:eq(3)").text().replace(/[^\d.]/g, "").trim(), // 原金額
+				"",
+				"",
+				discountValue.replace(/[^\d.]/g, "").trim(), // 優惠額
+				parseInt(row.find("td:eq(5)").text().replace(/[^\d.]/g, "").trim()) * parseInt($("#off").val()) / 100, // 應付額
+				row.find("td:eq(6) input[type=checkbox]").is(":checked") ? "V" : ""
+			];
+			console.log(parseInt($("#off").val()));
+			csvContent += rowData.join(",") + "\n";
+			TotalPrice += parseInt(row.find("td:eq(3)").text().replace(/[^\d.]/g, "").trim());
+			TotalDiscount += parseInt(discountValue.replace(/[^\d.]/g, "").trim());
+		});
+		csvContent += "總原價" + "," + TotalPrice + ",,,總應付," + parseInt((parseInt(TotalPrice) - parseInt(TotalDiscount)) * parseInt($("#off").val())) / 100 + ",,,,折扣金額," + parseInt(TotalDiscount);
+		
+		// 將CSV數據匯出到console
+		console.log(csvContent);
+		
+		var link = window.document.createElement("a");
+		link.setAttribute("href", "data:text/csv;charset=utf-8,%EF%BB%BF" + encodeURI(csvContent));
+		link.setAttribute("download", "input.csv");
+		link.click();
+	};
+
+    // 匯出 CSV 按鈕點擊事件
+    $("#export").click(function(){
+        // 呼叫匯出函數
+        Export();
+    });
+});
+</script>
+</head>
+<body>
+<h2>JSON Parser</h2>
+<textarea id="jsonData" rows="10" cols="50">
+{
+    "status": "success",
+    "data": {
+        "orders": [
+            {
+                "uuid": "a80cdc4b-fbab-4732-b98b-2ef9b7d65182",
+                "contacts": [],
+                "actions": null,
+                "bottomSheets": null,
+                "orderInfo": {
+                    "orderPhase": "ACTIVE",
+                    "storeInfo": {
+                        "storeUUID": "b6df7591-c143-4505-9ecf-e904b0205550",
+                        "territoryUUID": "2a3c48c7-24be-4119-bde7-30ba0647d577",
+                        "location": {
+                            "address": {
+                                "address1": "Wumiao Road 157",
+                                "aptOrSuite": "1號",
+                                "city": "Lingya District",
+                                "country": "TW",
+                                "postalCode": "802",
+                                "region": "Kaohsiung City",
+                                "uuid": "d4e82403-643b-40ad-884c-b81b25637404",
+                                "eaterFormattedAddress": "Wumiao Road 157 1號, Lingya District, Kaohsiung City 802"
+                            },
+                            "latitude": 22.6312962,
+                            "longitude": 120.3256514
+                        },
+                        "webURL": "https://www.ubereats.com/store/%E5%9C%93%E7%A8%BC%E5%9A%BC%E6%84%9F%E9%A3%B2%E5%93%81-%E9%AB%98%E9%9B%84%E6%AD%A6%E5%BB%9F%E5%BA%97/tt91kcFDRQWez-kEsCBVUA",
+                        "heroImageURL": "https://tb-static.uber.com/prod/image-proc/processed_images/8c954c0cfbe342e6cfe2b564f9603a4b/9b3aae4cf90f897799a5ed357d60e09d.jpeg",
+                        "name": "圓稼嚼感飲品 高雄武廟店",
+                        "parentChainUUID": "a60a6919-ed19-4cc9-9cf7-9c38f3cf89a3"
+                    },
+                    "orderCategory": "DEFAULT",
+                    "customerInfos": [
+                        {
+                            "firstName": "Kevin",
+                            "lastName": "C.",
+                            "phone": "+886 2 5594 1277",
+                            "requestDevice": "android",
+                            "appVersion": "6.207.10000",
+                            "phonePinCode": "665 88 383",
+                            "uuid": "102e147a-4f9d-4469-b349-5fa419fbcf10",
+                            "pictureUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524826&Signature=njNIbc01Ttm-9JDM5XudBd77K088WOedMDR0YOB4cWX6A1KWgUXdFpvKVG4Ev8AOW85ZUY4t0uyBdlbv7SUSf2hkx~MXWj9OQh2wu4FDWi0GMLYJw2o9taXQCR0am6UAZq31uGi8oHQn0n78MzZoOyrgOGz5sZoOBOL11EaPpwCmnUkICj34GC25rhmXak3yYV0DTXn7h85eX~H3DILn6~PXl~itVlm1Q8VisBUBi-n6sErO1nrKnoG~yK~-wXVPrqTnXsPOD6K9T51c11fqWI4KLrS40ir1Ko-ZJnodHS84ANNLa7IArFH5M59~ftgz6-kklpVN-GMgBY4Vwv5JiQ__&Key-Pair-Id=K36LFL06Z5BT10",
+                            "inviteCode": "bzgyhjwn6b"
+                        },
+                        {
+                            "phone": "+886 2 5594 1277",
+                            "requestDevice": "android",
+                            "appVersion": "6.207.10000",
+                            "phonePinCode": "665 88 383",
+                            "uuid": "458f6a00-239e-5ec0-a74a-62f1f05868bd",
+                            "nickName": "四樓小咔啦咪",
+                            "pictureUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524897&Signature=D31msE2bvyA2TA3ZR4msvEzDamI4GcPPGkuxbF1ivxRLvdrsmNn7kRxDdUKDGAxNWpQ2MddQ5pLwDIDDOHmeZAcvyodx3vkr19DUXptHaHbDrGpQVklHWCCI~fEV8CLAlcefkkABma6jFYQs2YyHQbzkmP76DZpa~CwEa04k~xQCUp6ZA2byK2hZqS4uiJe5t8g4YNhM0FeIPs~9FxHkmkaWMbJ1HfCzIE797bbU8yH2s3vg643~PpMj-0lqbE1ttD2--TDPhoVH-B5LvOZ6EBuboIp0OTOLBAFPvZKV5R-eVyo13dAdJ4111NsWWmljRYxbWY6IObMtti15jviekQ__&Key-Pair-Id=K36LFL06Z5BT10"
+                        },
+                        {
+                            "phone": "+886 2 5594 1277",
+                            "requestDevice": "android",
+                            "appVersion": "6.207.10000",
+                            "phonePinCode": "665 88 383",
+                            "uuid": "91f5e494-a8f8-5df7-bfb4-b1677104bf06",
+                            "nickName": "看單員",
+                            "pictureUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524897&Signature=D31msE2bvyA2TA3ZR4msvEzDamI4GcPPGkuxbF1ivxRLvdrsmNn7kRxDdUKDGAxNWpQ2MddQ5pLwDIDDOHmeZAcvyodx3vkr19DUXptHaHbDrGpQVklHWCCI~fEV8CLAlcefkkABma6jFYQs2YyHQbzkmP76DZpa~CwEa04k~xQCUp6ZA2byK2hZqS4uiJe5t8g4YNhM0FeIPs~9FxHkmkaWMbJ1HfCzIE797bbU8yH2s3vg643~PpMj-0lqbE1ttD2--TDPhoVH-B5LvOZ6EBuboIp0OTOLBAFPvZKV5R-eVyo13dAdJ4111NsWWmljRYxbWY6IObMtti15jviekQ__&Key-Pair-Id=K36LFL06Z5BT10"
+                        },
+                        {
+                            "firstName": "建全",
+                            "lastName": "林.",
+                            "phone": "+886 2 5594 1277",
+                            "requestDevice": "android",
+                            "appVersion": "6.207.10000",
+                            "phonePinCode": "665 88 383",
+                            "uuid": "5c07f8fc-56dd-4514-b83d-40bc74e1b45c",
+                            "pictureUrl": "https://d1w2poirtb3as9.cloudfront.net/fd0d8624-5f23-4b52-beb8-f6ed0bf0952d.jpeg?Expires=1710524838&Signature=L9~6rb7j5fHv1J5g1UGiz~JauHw7Z5D3J6eW5yLZJW2ASOmp6RqmXYi0XIjCPndGEBeFCxflWMt-pJhrJhuqaoX4ulGMuOFrnMkgK8-YNFGcP9N26mO1U3MlTBLokQnqfkMNvPIxxOZOfEaI6ptqie66ESBqRDK4xbvoYSyQywPgu2z~u~cWOTt9vfGuVpQZpeTkyiCCqUwhqfdjydK5MMVU7txt1ADTZvFE1ZG8rxk4K69YuPlwmdOcQiSXxDep~EflPvXumEJgSmuuZAB5fKuTD311ckA~ME8izghuCFP3nEuOAFMpke5g3gbihG8PlpFXHqu-xzZNjiLkwK8SlA__&Key-Pair-Id=K36LFL06Z5BT10",
+                            "inviteCode": "ajr229geba"
+                        },
+                        {
+                            "firstName": "chengyi",
+                            "lastName": "C.",
+                            "phone": "+886 2 5594 1277",
+                            "requestDevice": "android",
+                            "appVersion": "6.207.10000",
+                            "phonePinCode": "665 88 383",
+                            "uuid": "65617c5e-cab3-4e7f-bff4-e17714e66c85",
+                            "pictureUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524589&Signature=1KNWlKCD4QDE8z73jSBbSIXxQqpAwWb1wrm3D~jmY-juCdtUJITuFDyte1ljMia0Y68rsRTnD1E57dRtELWtvfGaGJtSgOOOm0L2tM19LR-clUkTJ9Ob5QpaO3wAbAdMCy94cl6EOMQGcG0h2dpqAY~543aK00zWFSfoRQ3cz7Gzekh6wrc5B14YG0yN5sxi7RO0OtM6LDNVQWTsIM7lxKw3pKBImrP-qxGcdHxzRS9QrIDrLuNedCtfWzA7er7L8seaOUtJDhq8T30SMjvCSr5Xqf0maoQMbWX1OSWTKcNAHy06nUIsIB9LGGqvt7QeEnpHdYXZZyrJ2LnQN4fKZg__&Key-Pair-Id=K36LFL06Z5BT10",
+                            "inviteCode": "0rpzqp"
+                        },
+                        {
+                            "firstName": "Sailor",
+                            "lastName": "C.",
+                            "phone": "+886 2 5594 1277",
+                            "requestDevice": "android",
+                            "appVersion": "6.207.10000",
+                            "phonePinCode": "665 88 383",
+                            "uuid": "5865161d-b7b9-40e9-812c-663fce39dad5",
+                            "nickName": "sailor0611@gmail.com",
+                            "pictureUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524589&Signature=1KNWlKCD4QDE8z73jSBbSIXxQqpAwWb1wrm3D~jmY-juCdtUJITuFDyte1ljMia0Y68rsRTnD1E57dRtELWtvfGaGJtSgOOOm0L2tM19LR-clUkTJ9Ob5QpaO3wAbAdMCy94cl6EOMQGcG0h2dpqAY~543aK00zWFSfoRQ3cz7Gzekh6wrc5B14YG0yN5sxi7RO0OtM6LDNVQWTsIM7lxKw3pKBImrP-qxGcdHxzRS9QrIDrLuNedCtfWzA7er7L8seaOUtJDhq8T30SMjvCSr5Xqf0maoQMbWX1OSWTKcNAHy06nUIsIB9LGGqvt7QeEnpHdYXZZyrJ2LnQN4fKZg__&Key-Pair-Id=K36LFL06Z5BT10",
+                            "inviteCode": "mnhqw5q9ue"
+                        },
+                        {
+                            "phone": "+886 2 5594 1277",
+                            "requestDevice": "android",
+                            "appVersion": "6.207.10000",
+                            "phonePinCode": "665 88 383",
+                            "uuid": "2211caed-54e7-5aae-bf80-b64855def539",
+                            "nickName": "KC",
+                            "pictureUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524897&Signature=D31msE2bvyA2TA3ZR4msvEzDamI4GcPPGkuxbF1ivxRLvdrsmNn7kRxDdUKDGAxNWpQ2MddQ5pLwDIDDOHmeZAcvyodx3vkr19DUXptHaHbDrGpQVklHWCCI~fEV8CLAlcefkkABma6jFYQs2YyHQbzkmP76DZpa~CwEa04k~xQCUp6ZA2byK2hZqS4uiJe5t8g4YNhM0FeIPs~9FxHkmkaWMbJ1HfCzIE797bbU8yH2s3vg643~PpMj-0lqbE1ttD2--TDPhoVH-B5LvOZ6EBuboIp0OTOLBAFPvZKV5R-eVyo13dAdJ4111NsWWmljRYxbWY6IObMtti15jviekQ__&Key-Pair-Id=K36LFL06Z5BT10"
+                        },
+                        {
+                            "phone": "+886 2 5594 1277",
+                            "requestDevice": "android",
+                            "appVersion": "6.207.10000",
+                            "phonePinCode": "665 88 383",
+                            "uuid": "0f21a2e0-e056-5d7a-8267-e7d901167cfa",
+                            "nickName": "Ming",
+                            "pictureUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524897&Signature=D31msE2bvyA2TA3ZR4msvEzDamI4GcPPGkuxbF1ivxRLvdrsmNn7kRxDdUKDGAxNWpQ2MddQ5pLwDIDDOHmeZAcvyodx3vkr19DUXptHaHbDrGpQVklHWCCI~fEV8CLAlcefkkABma6jFYQs2YyHQbzkmP76DZpa~CwEa04k~xQCUp6ZA2byK2hZqS4uiJe5t8g4YNhM0FeIPs~9FxHkmkaWMbJ1HfCzIE797bbU8yH2s3vg643~PpMj-0lqbE1ttD2--TDPhoVH-B5LvOZ6EBuboIp0OTOLBAFPvZKV5R-eVyo13dAdJ4111NsWWmljRYxbWY6IObMtti15jviekQ__&Key-Pair-Id=K36LFL06Z5BT10"
+                        },
+                        {
+                            "firstName": "珈",
+                            "lastName": "珈.",
+                            "phone": "+886 2 5594 1277",
+                            "requestDevice": "android",
+                            "appVersion": "6.207.10000",
+                            "phonePinCode": "665 88 383",
+                            "uuid": "7e0670e9-74ca-4ce9-abc8-b5a78c4d4318",
+                            "pictureUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524589&Signature=1KNWlKCD4QDE8z73jSBbSIXxQqpAwWb1wrm3D~jmY-juCdtUJITuFDyte1ljMia0Y68rsRTnD1E57dRtELWtvfGaGJtSgOOOm0L2tM19LR-clUkTJ9Ob5QpaO3wAbAdMCy94cl6EOMQGcG0h2dpqAY~543aK00zWFSfoRQ3cz7Gzekh6wrc5B14YG0yN5sxi7RO0OtM6LDNVQWTsIM7lxKw3pKBImrP-qxGcdHxzRS9QrIDrLuNedCtfWzA7er7L8seaOUtJDhq8T30SMjvCSr5Xqf0maoQMbWX1OSWTKcNAHy06nUIsIB9LGGqvt7QeEnpHdYXZZyrJ2LnQN4fKZg__&Key-Pair-Id=K36LFL06Z5BT10",
+                            "inviteCode": "vlzjdnshxb"
+                        },
+                        {
+                            "phone": "+886 2 5594 1277",
+                            "requestDevice": "android",
+                            "appVersion": "6.207.10000",
+                            "phonePinCode": "665 88 383",
+                            "uuid": "8687dd7d-fc21-52cd-8913-86f05e0961a6",
+                            "nickName": "Liwe",
+                            "pictureUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524897&Signature=D31msE2bvyA2TA3ZR4msvEzDamI4GcPPGkuxbF1ivxRLvdrsmNn7kRxDdUKDGAxNWpQ2MddQ5pLwDIDDOHmeZAcvyodx3vkr19DUXptHaHbDrGpQVklHWCCI~fEV8CLAlcefkkABma6jFYQs2YyHQbzkmP76DZpa~CwEa04k~xQCUp6ZA2byK2hZqS4uiJe5t8g4YNhM0FeIPs~9FxHkmkaWMbJ1HfCzIE797bbU8yH2s3vg643~PpMj-0lqbE1ttD2--TDPhoVH-B5LvOZ6EBuboIp0OTOLBAFPvZKV5R-eVyo13dAdJ4111NsWWmljRYxbWY6IObMtti15jviekQ__&Key-Pair-Id=K36LFL06Z5BT10"
+                        }
+                    ],
+                    "eaterUUID": "102e147a-4f9d-4469-b349-5fa419fbcf10",
+                    "groupOrderInfo": {
+                        "isGroupOrderCreator": false
+                    }
+                },
+                "activeOrderOverview": {
+                    "title": "圓稼嚼感飲品 高雄武廟店",
+                    "subtitle": "15 份餐點，共 $435.00",
+                    "backgroundImageUrl": "https://tb-static.uber.com/prod/image-proc/processed_images/8c954c0cfbe342e6cfe2b564f9603a4b/9b3aae4cf90f897799a5ed357d60e09d.jpeg",
+                    "items": [
+                        {
+                            "shoppingCartItemUUID": "8858936c-75fa-477b-bf90-1b6b02be418e",
+                            "title": "阿薩姆奶茶",
+                            "quantity": 2,
+                            "subtitle": "大杯 • 一分糖 • 少冰",
+                            "itemQuantity": {
+                                "value": {
+                                    "coefficient": 2,
+                                    "exponent": 0
+                                },
+                                "measurementUnit": {
+                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                }
+                            }
+                        },
+                        {
+                            "shoppingCartItemUUID": "c356f0a0-5b29-422d-8bcd-f8c23feb8632",
+                            "title": "翠沏綠茶",
+                            "quantity": 2,
+                            "subtitle": "大杯 • 一分糖 • 微冰",
+                            "itemQuantity": {
+                                "value": {
+                                    "coefficient": 2,
+                                    "exponent": 0
+                                },
+                                "measurementUnit": {
+                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                }
+                            }
+                        },
+                        {
+                            "shoppingCartItemUUID": "3dde1cfc-f3e4-4c91-b238-0213d817b7bf",
+                            "title": "玉茗台灣青",
+                            "quantity": 2,
+                            "subtitle": "中杯 • 無糖 • 微冰",
+                            "itemQuantity": {
+                                "value": {
+                                    "coefficient": 2,
+                                    "exponent": 0
+                                },
+                                "measurementUnit": {
+                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                }
+                            }
+                        },
+                        {
+                            "shoppingCartItemUUID": "b0d6547b-0957-4023-910d-610ae0b474a1",
+                            "title": "冰淇淋紅茶",
+                            "quantity": 1,
+                            "subtitle": "微糖 • 微冰",
+                            "itemQuantity": {
+                                "value": {
+                                    "coefficient": 1,
+                                    "exponent": 0
+                                },
+                                "measurementUnit": {
+                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                }
+                            }
+                        },
+                        {
+                            "shoppingCartItemUUID": "29f0db21-0dea-4278-9b02-e1f25d2ab27e",
+                            "title": "阿薩姆紅茶",
+                            "quantity": 1,
+                            "subtitle": "大杯 • 無糖 • 正常冰 • 波霸",
+                            "itemQuantity": {
+                                "value": {
+                                    "coefficient": 1,
+                                    "exponent": 0
+                                },
+                                "measurementUnit": {
+                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                }
+                            }
+                        },
+                        {
+                            "shoppingCartItemUUID": "0aa42db3-4236-4340-ba98-11d40cb58e2c",
+                            "title": "阿薩姆紅茶",
+                            "quantity": 1,
+                            "subtitle": "大杯 • 無糖 • 正常冰",
+                            "itemQuantity": {
+                                "value": {
+                                    "coefficient": 1,
+                                    "exponent": 0
+                                },
+                                "measurementUnit": {
+                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                }
+                            }
+                        },
+                        {
+                            "shoppingCartItemUUID": "b3655ae1-3c79-4098-9ec4-c9db5bc4a3f1",
+                            "title": "老欉楊桃凍飲",
+                            "quantity": 2,
+                            "subtitle": "中杯 • 微糖 • 去冰",
+                            "itemQuantity": {
+                                "value": {
+                                    "coefficient": 2,
+                                    "exponent": 0
+                                },
+                                "measurementUnit": {
+                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                }
+                            }
+                        },
+                        {
+                            "shoppingCartItemUUID": "4afad359-1489-4ec2-bfcb-2884e473f0e1",
+                            "title": "阿薩姆紅茶",
+                            "quantity": 1,
+                            "subtitle": "大杯 • 半糖 • 微冰",
+                            "itemQuantity": {
+                                "value": {
+                                    "coefficient": 1,
+                                    "exponent": 0
+                                },
+                                "measurementUnit": {
+                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                }
+                            }
+                        },
+                        {
+                            "shoppingCartItemUUID": "5912822f-51e7-4807-926c-0d07745f903b",
+                            "title": "四季春烏龍",
+                            "quantity": 2,
+                            "subtitle": "大杯 • 無糖 • 微冰",
+                            "itemQuantity": {
+                                "value": {
+                                    "coefficient": 2,
+                                    "exponent": 0
+                                },
+                                "measurementUnit": {
+                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                }
+                            }
+                        },
+                        {
+                            "shoppingCartItemUUID": "92278398-0647-4dda-9e7f-1f04eeb5c898",
+                            "title": "黑玉波霸濃乳茶",
+                            "quantity": 1,
+                            "subtitle": "大杯 • 無糖 • 微冰",
+                            "itemQuantity": {
+                                "value": {
+                                    "coefficient": 1,
+                                    "exponent": 0
+                                },
+                                "measurementUnit": {
+                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                }
+                            }
+                        }
+                    ],
+                    "actions": null,
+                    "tertiaryInfo": {
+                        "icon": "PERSON_MULTIPLE",
+                        "title": "心跳少一拍"
+                    }
+                },
+                "inAppNotification": {
+                    "title": "2:25",
+                    "subtitle": "圓稼嚼感飲品 高雄武廟店"
+                },
+                "feedCards": [
+                    {
+                        "status": {
+                            "title": "2:25",
+                            "subtitle": "預估抵達時間",
+                            "timelineSummary": "",
+                            "statusSummary": {
+                                "text": "最晚抵達時間：3:00 PM",
+                                "infoText": "最晚抵達時間為何？",
+                                "infoBody": "您的訂單大約會在 3:00 PM 前送達。這是系統根據數千筆類似訂單的情況所預估的抵達時間，但無法保證必定精準無誤。"
+                            },
+                            "currentProgress": 1,
+                            "totalProgressSegments": 5,
+                            "animateCurrentProgressSegment": true,
+                            "actions": null,
+                            "titleSummary": {
+                                "summary": {
+                                    "text": "訂單正在準備中…",
+                                    "textFormat": "<span style=\"font-family:HM;font-size:24px;color:#000000;\">訂單正在準備中…</span>"
+                                }
+                            },
+                            "subtitleSummary": {
+                                "summary": {
+                                    "text": "預估抵達時間 2:25 PM",
+                                    "textFormat": "<span style=\"font-family:M2;color:#545454;\">預估抵達時間 <span style=\"font-family:M2;color:#000000;\">2:25 PM</span></span>"
+                                }
+                            }
+                        },
+                        "mapEntity": null,
+                        "courier": null,
+                        "type": "status"
+                    },
+                    {
+                        "illustration": {
+                            "illustrationUrl": "https://duyt4h9nfnj50.cloudfront.net/ontrip/3pByocPreparingState.json",
+                            "staticIllustrationUrl": "https://duyt4h9nfnj50.cloudfront.net/ontrip/Preparing.png"
+                        },
+                        "mapEntity": null,
+                        "courier": null,
+                        "type": "illustration"
+                    },
+                    {
+                        "delivery": {
+                            "formattedAddress": "830台灣高雄市鳳山區中山西路316號",
+                            "deliveryTypeDescription": "放在門口",
+                            "specialInstructions": "放置於停車場右邊小門內電梯門口前紙箱(收到貨 請開箱)內即可\n*不用上樓",
+                            "title": "外送詳細資訊",
+                            "paragraphs": [
+                                {
+                                    "title": "830台灣高雄市鳳山區中山西路316號"
+                                },
+                                {
+                                    "title": "放在門口",
+                                    "subtitle": "放置於停車場右邊小門內電梯門口前紙箱(收到貨 請開箱)內即可\n*不用上樓"
+                                },
+                                {
+                                    "title": "服務",
+                                    "subtitle": "標準"
+                                }
+                            ]
+                        },
+                        "mapEntity": null,
+                        "courier": null,
+                        "type": "delivery"
+                    },
+                    {
+                        "orderSummary": {
+                            "restaurantName": "圓稼嚼感飲品 高雄武廟店",
+                            "items": [
+                                {
+                                    "shoppingCartItemUUID": "8858936c-75fa-477b-bf90-1b6b02be418e",
+                                    "title": "阿薩姆奶茶",
+                                    "quantity": 2,
+                                    "subtitle": "大杯 • 一分糖 • 少冰",
+                                    "itemQuantity": {
+                                        "value": {
+                                            "coefficient": 2,
+                                            "exponent": 0
+                                        },
+                                        "measurementUnit": {
+                                            "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                        }
+                                    }
+                                },
+                                {
+                                    "shoppingCartItemUUID": "c356f0a0-5b29-422d-8bcd-f8c23feb8632",
+                                    "title": "翠沏綠茶",
+                                    "quantity": 2,
+                                    "subtitle": "大杯 • 一分糖 • 微冰",
+                                    "itemQuantity": {
+                                        "value": {
+                                            "coefficient": 2,
+                                            "exponent": 0
+                                        },
+                                        "measurementUnit": {
+                                            "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                        }
+                                    }
+                                },
+                                {
+                                    "shoppingCartItemUUID": "3dde1cfc-f3e4-4c91-b238-0213d817b7bf",
+                                    "title": "玉茗台灣青",
+                                    "quantity": 2,
+                                    "subtitle": "中杯 • 無糖 • 微冰",
+                                    "itemQuantity": {
+                                        "value": {
+                                            "coefficient": 2,
+                                            "exponent": 0
+                                        },
+                                        "measurementUnit": {
+                                            "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                        }
+                                    }
+                                },
+                                {
+                                    "shoppingCartItemUUID": "b0d6547b-0957-4023-910d-610ae0b474a1",
+                                    "title": "冰淇淋紅茶",
+                                    "quantity": 1,
+                                    "subtitle": "微糖 • 微冰",
+                                    "itemQuantity": {
+                                        "value": {
+                                            "coefficient": 1,
+                                            "exponent": 0
+                                        },
+                                        "measurementUnit": {
+                                            "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                        }
+                                    }
+                                },
+                                {
+                                    "shoppingCartItemUUID": "29f0db21-0dea-4278-9b02-e1f25d2ab27e",
+                                    "title": "阿薩姆紅茶",
+                                    "quantity": 1,
+                                    "subtitle": "大杯 • 無糖 • 正常冰 • 波霸",
+                                    "itemQuantity": {
+                                        "value": {
+                                            "coefficient": 1,
+                                            "exponent": 0
+                                        },
+                                        "measurementUnit": {
+                                            "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                        }
+                                    }
+                                },
+                                {
+                                    "shoppingCartItemUUID": "0aa42db3-4236-4340-ba98-11d40cb58e2c",
+                                    "title": "阿薩姆紅茶",
+                                    "quantity": 1,
+                                    "subtitle": "大杯 • 無糖 • 正常冰",
+                                    "itemQuantity": {
+                                        "value": {
+                                            "coefficient": 1,
+                                            "exponent": 0
+                                        },
+                                        "measurementUnit": {
+                                            "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                        }
+                                    }
+                                },
+                                {
+                                    "shoppingCartItemUUID": "b3655ae1-3c79-4098-9ec4-c9db5bc4a3f1",
+                                    "title": "老欉楊桃凍飲",
+                                    "quantity": 2,
+                                    "subtitle": "中杯 • 微糖 • 去冰",
+                                    "itemQuantity": {
+                                        "value": {
+                                            "coefficient": 2,
+                                            "exponent": 0
+                                        },
+                                        "measurementUnit": {
+                                            "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                        }
+                                    }
+                                },
+                                {
+                                    "shoppingCartItemUUID": "4afad359-1489-4ec2-bfcb-2884e473f0e1",
+                                    "title": "阿薩姆紅茶",
+                                    "quantity": 1,
+                                    "subtitle": "大杯 • 半糖 • 微冰",
+                                    "itemQuantity": {
+                                        "value": {
+                                            "coefficient": 1,
+                                            "exponent": 0
+                                        },
+                                        "measurementUnit": {
+                                            "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                        }
+                                    }
+                                },
+                                {
+                                    "shoppingCartItemUUID": "5912822f-51e7-4807-926c-0d07745f903b",
+                                    "title": "四季春烏龍",
+                                    "quantity": 2,
+                                    "subtitle": "大杯 • 無糖 • 微冰",
+                                    "itemQuantity": {
+                                        "value": {
+                                            "coefficient": 2,
+                                            "exponent": 0
+                                        },
+                                        "measurementUnit": {
+                                            "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                        }
+                                    }
+                                },
+                                {
+                                    "shoppingCartItemUUID": "92278398-0647-4dda-9e7f-1f04eeb5c898",
+                                    "title": "黑玉波霸濃乳茶",
+                                    "quantity": 1,
+                                    "subtitle": "大杯 • 無糖 • 微冰",
+                                    "itemQuantity": {
+                                        "value": {
+                                            "coefficient": 1,
+                                            "exponent": 0
+                                        },
+                                        "measurementUnit": {
+                                            "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                        }
+                                    }
+                                }
+                            ],
+                            "total": "$435.00",
+                            "sections": [
+                                {
+                                    "header": {
+                                        "title": "Kevin C.",
+                                        "subtitle": "3 Items",
+                                        "iconUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524826&Signature=njNIbc01Ttm-9JDM5XudBd77K088WOedMDR0YOB4cWX6A1KWgUXdFpvKVG4Ev8AOW85ZUY4t0uyBdlbv7SUSf2hkx~MXWj9OQh2wu4FDWi0GMLYJw2o9taXQCR0am6UAZq31uGi8oHQn0n78MzZoOyrgOGz5sZoOBOL11EaPpwCmnUkICj34GC25rhmXak3yYV0DTXn7h85eX~H3DILn6~PXl~itVlm1Q8VisBUBi-n6sErO1nrKnoG~yK~-wXVPrqTnXsPOD6K9T51c11fqWI4KLrS40ir1Ko-ZJnodHS84ANNLa7IArFH5M59~ftgz6-kklpVN-GMgBY4Vwv5JiQ__&Key-Pair-Id=K36LFL06Z5BT10"
+                                    },
+                                    "items": [
+                                        {
+                                            "shoppingCartItemUUID": "5912822f-51e7-4807-926c-0d07745f903b",
+                                            "title": "四季春烏龍",
+                                            "quantity": 2,
+                                            "price": "$90.00",
+                                            "subtitle": "大杯 ($10.00) • 無糖 • 微冰",
+                                            "itemDiscount": {
+                                                "formattedAmount": "$55.00"
+                                            },
+                                            "itemQuantity": {
+                                                "value": {
+                                                    "coefficient": 2,
+                                                    "exponent": 0
+                                                },
+                                                "measurementUnit": {
+                                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "shoppingCartItemUUID": "92278398-0647-4dda-9e7f-1f04eeb5c898",
+                                            "title": "黑玉波霸濃乳茶",
+                                            "quantity": 1,
+                                            "price": "$65.00",
+                                            "subtitle": "大杯 ($10.00) • 無糖 • 微冰",
+                                            "itemQuantity": {
+                                                "value": {
+                                                    "coefficient": 1,
+                                                    "exponent": 0
+                                                },
+                                                "measurementUnit": {
+                                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "header": {
+                                        "title": "四樓小咔啦咪",
+                                        "subtitle": "2 Items",
+                                        "iconUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524897&Signature=D31msE2bvyA2TA3ZR4msvEzDamI4GcPPGkuxbF1ivxRLvdrsmNn7kRxDdUKDGAxNWpQ2MddQ5pLwDIDDOHmeZAcvyodx3vkr19DUXptHaHbDrGpQVklHWCCI~fEV8CLAlcefkkABma6jFYQs2YyHQbzkmP76DZpa~CwEa04k~xQCUp6ZA2byK2hZqS4uiJe5t8g4YNhM0FeIPs~9FxHkmkaWMbJ1HfCzIE797bbU8yH2s3vg643~PpMj-0lqbE1ttD2--TDPhoVH-B5LvOZ6EBuboIp0OTOLBAFPvZKV5R-eVyo13dAdJ4111NsWWmljRYxbWY6IObMtti15jviekQ__&Key-Pair-Id=K36LFL06Z5BT10"
+                                    },
+                                    "items": [
+                                        {
+                                            "shoppingCartItemUUID": "8858936c-75fa-477b-bf90-1b6b02be418e",
+                                            "title": "阿薩姆奶茶",
+                                            "quantity": 2,
+                                            "price": "$100.00",
+                                            "subtitle": "大杯 ($10.00) • 一分糖 • 少冰",
+                                            "itemQuantity": {
+                                                "value": {
+                                                    "coefficient": 2,
+                                                    "exponent": 0
+                                                },
+                                                "measurementUnit": {
+                                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "header": {
+                                        "title": "看單員",
+                                        "subtitle": "0 Item",
+                                        "iconUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524897&Signature=D31msE2bvyA2TA3ZR4msvEzDamI4GcPPGkuxbF1ivxRLvdrsmNn7kRxDdUKDGAxNWpQ2MddQ5pLwDIDDOHmeZAcvyodx3vkr19DUXptHaHbDrGpQVklHWCCI~fEV8CLAlcefkkABma6jFYQs2YyHQbzkmP76DZpa~CwEa04k~xQCUp6ZA2byK2hZqS4uiJe5t8g4YNhM0FeIPs~9FxHkmkaWMbJ1HfCzIE797bbU8yH2s3vg643~PpMj-0lqbE1ttD2--TDPhoVH-B5LvOZ6EBuboIp0OTOLBAFPvZKV5R-eVyo13dAdJ4111NsWWmljRYxbWY6IObMtti15jviekQ__&Key-Pair-Id=K36LFL06Z5BT10"
+                                    },
+                                    "items": []
+                                },
+                                {
+                                    "header": {
+                                        "title": "建全 林.",
+                                        "subtitle": "2 Items",
+                                        "iconUrl": "https://d1w2poirtb3as9.cloudfront.net/fd0d8624-5f23-4b52-beb8-f6ed0bf0952d.jpeg?Expires=1710524838&Signature=L9~6rb7j5fHv1J5g1UGiz~JauHw7Z5D3J6eW5yLZJW2ASOmp6RqmXYi0XIjCPndGEBeFCxflWMt-pJhrJhuqaoX4ulGMuOFrnMkgK8-YNFGcP9N26mO1U3MlTBLokQnqfkMNvPIxxOZOfEaI6ptqie66ESBqRDK4xbvoYSyQywPgu2z~u~cWOTt9vfGuVpQZpeTkyiCCqUwhqfdjydK5MMVU7txt1ADTZvFE1ZG8rxk4K69YuPlwmdOcQiSXxDep~EflPvXumEJgSmuuZAB5fKuTD311ckA~ME8izghuCFP3nEuOAFMpke5g3gbihG8PlpFXHqu-xzZNjiLkwK8SlA__&Key-Pair-Id=K36LFL06Z5BT10"
+                                    },
+                                    "items": [
+                                        {
+                                            "shoppingCartItemUUID": "c356f0a0-5b29-422d-8bcd-f8c23feb8632",
+                                            "title": "翠沏綠茶",
+                                            "quantity": 2,
+                                            "price": "$80.00",
+                                            "subtitle": "大杯 ($10.00) • 一分糖 • 微冰",
+                                            "itemDiscount": {
+                                                "formattedAmount": "$50.00"
+                                            },
+                                            "itemQuantity": {
+                                                "value": {
+                                                    "coefficient": 2,
+                                                    "exponent": 0
+                                                },
+                                                "measurementUnit": {
+                                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "header": {
+                                        "title": "chengyi C.",
+                                        "subtitle": "2 Items",
+                                        "iconUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524589&Signature=1KNWlKCD4QDE8z73jSBbSIXxQqpAwWb1wrm3D~jmY-juCdtUJITuFDyte1ljMia0Y68rsRTnD1E57dRtELWtvfGaGJtSgOOOm0L2tM19LR-clUkTJ9Ob5QpaO3wAbAdMCy94cl6EOMQGcG0h2dpqAY~543aK00zWFSfoRQ3cz7Gzekh6wrc5B14YG0yN5sxi7RO0OtM6LDNVQWTsIM7lxKw3pKBImrP-qxGcdHxzRS9QrIDrLuNedCtfWzA7er7L8seaOUtJDhq8T30SMjvCSr5Xqf0maoQMbWX1OSWTKcNAHy06nUIsIB9LGGqvt7QeEnpHdYXZZyrJ2LnQN4fKZg__&Key-Pair-Id=K36LFL06Z5BT10"
+                                    },
+                                    "items": [
+                                        {
+                                            "shoppingCartItemUUID": "3dde1cfc-f3e4-4c91-b238-0213d817b7bf",
+                                            "title": "玉茗台灣青",
+                                            "quantity": 2,
+                                            "price": "$70.00",
+                                            "subtitle": "中杯 • 無糖 • 微冰",
+                                            "itemDiscount": {
+                                                "formattedAmount": "$35.00"
+                                            },
+                                            "itemQuantity": {
+                                                "value": {
+                                                    "coefficient": 2,
+                                                    "exponent": 0
+                                                },
+                                                "measurementUnit": {
+                                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "header": {
+                                        "title": "Sailor C.",
+                                        "subtitle": "1 Item",
+                                        "iconUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524589&Signature=1KNWlKCD4QDE8z73jSBbSIXxQqpAwWb1wrm3D~jmY-juCdtUJITuFDyte1ljMia0Y68rsRTnD1E57dRtELWtvfGaGJtSgOOOm0L2tM19LR-clUkTJ9Ob5QpaO3wAbAdMCy94cl6EOMQGcG0h2dpqAY~543aK00zWFSfoRQ3cz7Gzekh6wrc5B14YG0yN5sxi7RO0OtM6LDNVQWTsIM7lxKw3pKBImrP-qxGcdHxzRS9QrIDrLuNedCtfWzA7er7L8seaOUtJDhq8T30SMjvCSr5Xqf0maoQMbWX1OSWTKcNAHy06nUIsIB9LGGqvt7QeEnpHdYXZZyrJ2LnQN4fKZg__&Key-Pair-Id=K36LFL06Z5BT10"
+                                    },
+                                    "items": [
+                                        {
+                                            "shoppingCartItemUUID": "b0d6547b-0957-4023-910d-610ae0b474a1",
+                                            "title": "冰淇淋紅茶",
+                                            "quantity": 1,
+                                            "price": "$55.00",
+                                            "subtitle": "微糖 • 微冰",
+                                            "itemQuantity": {
+                                                "value": {
+                                                    "coefficient": 1,
+                                                    "exponent": 0
+                                                },
+                                                "measurementUnit": {
+                                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "header": {
+                                        "title": "KC",
+                                        "subtitle": "0 Item",
+                                        "iconUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524897&Signature=D31msE2bvyA2TA3ZR4msvEzDamI4GcPPGkuxbF1ivxRLvdrsmNn7kRxDdUKDGAxNWpQ2MddQ5pLwDIDDOHmeZAcvyodx3vkr19DUXptHaHbDrGpQVklHWCCI~fEV8CLAlcefkkABma6jFYQs2YyHQbzkmP76DZpa~CwEa04k~xQCUp6ZA2byK2hZqS4uiJe5t8g4YNhM0FeIPs~9FxHkmkaWMbJ1HfCzIE797bbU8yH2s3vg643~PpMj-0lqbE1ttD2--TDPhoVH-B5LvOZ6EBuboIp0OTOLBAFPvZKV5R-eVyo13dAdJ4111NsWWmljRYxbWY6IObMtti15jviekQ__&Key-Pair-Id=K36LFL06Z5BT10"
+                                    },
+                                    "items": []
+                                },
+                                {
+                                    "header": {
+                                        "title": "Ming",
+                                        "subtitle": "2 Items",
+                                        "iconUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524897&Signature=D31msE2bvyA2TA3ZR4msvEzDamI4GcPPGkuxbF1ivxRLvdrsmNn7kRxDdUKDGAxNWpQ2MddQ5pLwDIDDOHmeZAcvyodx3vkr19DUXptHaHbDrGpQVklHWCCI~fEV8CLAlcefkkABma6jFYQs2YyHQbzkmP76DZpa~CwEa04k~xQCUp6ZA2byK2hZqS4uiJe5t8g4YNhM0FeIPs~9FxHkmkaWMbJ1HfCzIE797bbU8yH2s3vg643~PpMj-0lqbE1ttD2--TDPhoVH-B5LvOZ6EBuboIp0OTOLBAFPvZKV5R-eVyo13dAdJ4111NsWWmljRYxbWY6IObMtti15jviekQ__&Key-Pair-Id=K36LFL06Z5BT10"
+                                    },
+                                    "items": [
+                                        {
+                                            "shoppingCartItemUUID": "29f0db21-0dea-4278-9b02-e1f25d2ab27e",
+                                            "title": "阿薩姆紅茶",
+                                            "quantity": 1,
+                                            "price": "$50.00",
+                                            "subtitle": "大杯 ($10.00) • 無糖 • 正常冰 • 波霸 ($10.00)",
+                                            "itemDiscount": {
+                                                "formattedAmount": "$20.00"
+                                            },
+                                            "itemQuantity": {
+                                                "value": {
+                                                    "coefficient": 1,
+                                                    "exponent": 0
+                                                },
+                                                "measurementUnit": {
+                                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "shoppingCartItemUUID": "0aa42db3-4236-4340-ba98-11d40cb58e2c",
+                                            "title": "阿薩姆紅茶",
+                                            "quantity": 1,
+                                            "price": "$40.00",
+                                            "subtitle": "大杯 ($10.00) • 無糖 • 正常冰",
+                                            "itemQuantity": {
+                                                "value": {
+                                                    "coefficient": 1,
+                                                    "exponent": 0
+                                                },
+                                                "measurementUnit": {
+                                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "header": {
+                                        "title": "珈 珈.",
+                                        "subtitle": "2 Items",
+                                        "iconUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524589&Signature=1KNWlKCD4QDE8z73jSBbSIXxQqpAwWb1wrm3D~jmY-juCdtUJITuFDyte1ljMia0Y68rsRTnD1E57dRtELWtvfGaGJtSgOOOm0L2tM19LR-clUkTJ9Ob5QpaO3wAbAdMCy94cl6EOMQGcG0h2dpqAY~543aK00zWFSfoRQ3cz7Gzekh6wrc5B14YG0yN5sxi7RO0OtM6LDNVQWTsIM7lxKw3pKBImrP-qxGcdHxzRS9QrIDrLuNedCtfWzA7er7L8seaOUtJDhq8T30SMjvCSr5Xqf0maoQMbWX1OSWTKcNAHy06nUIsIB9LGGqvt7QeEnpHdYXZZyrJ2LnQN4fKZg__&Key-Pair-Id=K36LFL06Z5BT10"
+                                    },
+                                    "items": [
+                                        {
+                                            "shoppingCartItemUUID": "b3655ae1-3c79-4098-9ec4-c9db5bc4a3f1",
+                                            "title": "老欉楊桃凍飲",
+                                            "quantity": 2,
+                                            "price": "$120.00",
+                                            "subtitle": "中杯 • 微糖 • 去冰",
+                                            "itemDiscount": {
+                                                "formattedAmount": "$60.00"
+                                            },
+                                            "itemQuantity": {
+                                                "value": {
+                                                    "coefficient": 2,
+                                                    "exponent": 0
+                                                },
+                                                "measurementUnit": {
+                                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "header": {
+                                        "title": "Liwe",
+                                        "subtitle": "1 Item",
+                                        "iconUrl": "https://d1w2poirtb3as9.cloudfront.net/default.jpeg?Expires=1710524897&Signature=D31msE2bvyA2TA3ZR4msvEzDamI4GcPPGkuxbF1ivxRLvdrsmNn7kRxDdUKDGAxNWpQ2MddQ5pLwDIDDOHmeZAcvyodx3vkr19DUXptHaHbDrGpQVklHWCCI~fEV8CLAlcefkkABma6jFYQs2YyHQbzkmP76DZpa~CwEa04k~xQCUp6ZA2byK2hZqS4uiJe5t8g4YNhM0FeIPs~9FxHkmkaWMbJ1HfCzIE797bbU8yH2s3vg643~PpMj-0lqbE1ttD2--TDPhoVH-B5LvOZ6EBuboIp0OTOLBAFPvZKV5R-eVyo13dAdJ4111NsWWmljRYxbWY6IObMtti15jviekQ__&Key-Pair-Id=K36LFL06Z5BT10"
+                                    },
+                                    "items": [
+                                        {
+                                            "shoppingCartItemUUID": "4afad359-1489-4ec2-bfcb-2884e473f0e1",
+                                            "title": "阿薩姆紅茶",
+                                            "quantity": 1,
+                                            "price": "$40.00",
+                                            "subtitle": "大杯 ($10.00) • 半糖 • 微冰",
+                                            "itemQuantity": {
+                                                "value": {
+                                                    "coefficient": 1,
+                                                    "exponent": 0
+                                                },
+                                                "measurementUnit": {
+                                                    "measurementType": "MEASUREMENT_TYPE_COUNT"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            ],
+                            "totalLabel": "總計"
+                        },
+                        "mapEntity": null,
+                        "courier": null,
+                        "type": "orderSummary"
+                    }
+                ],
+                "backgroundFeedCards": [
+                    {
+                        "mapEntity": [
+                            {
+                                "uuid": "b6df7591-c143-4505-9ecf-e904b0205550-icon",
+                                "type": "STORE",
+                                "latitude": 22.6312962,
+                                "longitude": 120.3256514,
+                                "subtitle": null,
+                                "pathPoints": null
+                            },
+                            {
+                                "uuid": "b6df7591-c143-4505-9ecf-e904b0205550-label",
+                                "type": "LABEL",
+                                "latitude": 22.6312962,
+                                "longitude": 120.3256514,
+                                "subtitle": [
+                                    "圓稼嚼感飲品",
+                                    "高雄武廟店"
+                                ],
+                                "pathPoints": null
+                            },
+                            {
+                                "uuid": "a80cdc4b-fbab-4732-b98b-2ef9b7d65182-icon",
+                                "type": "EATER",
+                                "latitude": 22.628405,
+                                "longitude": 120.34326,
+                                "subtitle": null,
+                                "pathPoints": null,
+                                "referenceType": "google_places"
+                            },
+                            {
+                                "uuid": "a80cdc4b-fbab-4732-b98b-2ef9b7d65182-label",
+                                "type": "LABEL",
+                                "latitude": 22.628405,
+                                "longitude": 120.34326,
+                                "subtitle": [
+                                    "中山西路316號"
+                                ],
+                                "pathPoints": null,
+                                "referenceType": "google_places"
+                            }
+                        ],
+                        "courier": null,
+                        "type": "mapEntity"
+                    }
+                ],
+                "layout": "LEFT",
+                "activeOrderStatus": {
+                    "title": "2:25",
+                    "subtitle": "預估抵達時間",
+                    "currentProgress": 1,
+                    "totalProgressSegments": 5,
+                    "progressColor": {
+                        "color": "#3E9920"
+                    },
+                    "animateCurrentProgressSegment": true,
+                    "actions": null,
+                    "deliveryConditions": null,
+                    "timelineSummary": {
+                        "text": "",
+                        "textFormat": "<span style=\"font-family:M2;color:#262626;\"></span>"
+                    },
+                    "titleSummary": {
+                        "summary": {
+                            "text": "正前往領取訂單…",
+                            "textFormat": "<span style=\"font-family:HM;font-size:24px;color:#000000;\">正前往領取訂單…</span>"
+                        }
+                    },
+                    "subtitleSummary": {
+                        "summary": {
+                            "text": "預估抵達時間 2:25 PM",
+                            "textFormat": "<span style=\"font-family:M2;color:#545454;\">預估抵達時間 <span style=\"font-family:M2;color:#000000;\">2:25 PM</span></span>"
+                        }
+                    },
+                    "activeOrderStatusDelayType": "VERY_SMALL_DELAY"
+                },
+                "analytics": {
+                    "data": {
+                        "courier_uuid": "none",
+                        "order_creation_time": "1710481589544",
+                        "order_currency": "TWD",
+                        "order_status": "Preparing",
+                        "order_total": "435.00",
+                        "order_uuid": "a80cdc4b-fbab-4732-b98b-2ef9b7d65182",
+                        "store_uuid": "b6df7591-c143-4505-9ecf-e904b0205550"
+                    }
+                },
+                "fullScreenTakeover": null,
+                "bottomSheetsV2": null
+            }
+        ]
+    }
+}
+</textarea><br>
+<button id="parseBtn">解析 JSON</button><br>
+<div>
+	店名:<a id="StoreName"></a><br>
+	收款人:<input id="payee"/><br>
+	預估抵達時間:<input id="activeOrderStatus"/><br>
+	打折:<input id="off"/>%
+</div>
+<div id="result"></div>
+<button id="export">輸出</button>
+</body>
+</html>

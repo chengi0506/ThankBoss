@@ -1,0 +1,436 @@
+[
+  {
+    "type": "flex",
+    "altText": "涼涼名單",
+    "contents": {
+      "type": "bubble",
+      "hero": {
+        "type": "image",
+        "url": "https://posfrontver.fcloud.org.tw/Unit/delivery-1.jpg",
+        "size": "xxl",
+        "aspectRatio": "50:50"
+      },
+      "body": {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "2024/04/29(一)",
+            "size": "md",
+            "color": "#040420",
+            "weight": "bold"
+          },
+          {
+            "type": "text",
+            "text": "【黑糖奶奶 三犬本舖 光華店】",
+            "size": "md",
+            "color": "#040420",
+            "weight": "bold"
+          },
+          {
+            "type": "text",
+            "text": "預估抵達時間 2:00 PM",
+            "size": "md",
+            "color": "#040420",
+            "weight": "bold"
+          },
+          {
+            "type": "text",
+            "text": "收款人:Awei",
+            "color": "#9e0200",
+            "weight": "bold",
+            "size": "md",
+            "align": "end"
+          },
+          {
+            "type": "separator"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "button",
+                    "color": "#1167b1",
+                    "action": {
+                      "type": "postback",
+                      "label": "書瑋 張. (You)",
+                      "data": "書瑋 張. (You)"
+                    },
+                    "style": "link",
+                    "offsetBottom": "10px",
+                    "flex": 3
+                  },
+                  {
+                    "type": "text",
+                    "text": "2元",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "weight": "bold",
+                    "flex": 2
+                  },
+                  {
+                    "type": "text",
+                    "text": "已收款",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "flex": 2
+                  }
+                ],
+                "margin": "none"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "button",
+                    "color": "#1167b1",
+                    "action": {
+                      "type": "postback",
+                      "label": "書瑋 張. (You)",
+                      "data": "書瑋 張. (You)"
+                    },
+                    "style": "link",
+                    "offsetBottom": "10px",
+                    "flex": 3
+                  },
+                  {
+                    "type": "text",
+                    "text": "51元",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "weight": "bold",
+                    "flex": 2
+                  },
+                  {
+                    "type": "text",
+                    "text": "已收款",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "flex": 2
+                  }
+                ],
+                "margin": "none"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "button",
+                    "color": "#1167b1",
+                    "action": {
+                      "type": "postback",
+                      "label": "建全 林.",
+                      "data": "建全 林."
+                    },
+                    "style": "link",
+                    "offsetBottom": "10px",
+                    "flex": 3
+                  },
+                  {
+                    "type": "text",
+                    "text": "55元",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "weight": "bold",
+                    "flex": 2
+                  },
+                  {
+                    "type": "text",
+                    "text": "已收款",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "flex": 2
+                  }
+                ],
+                "margin": "none"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "button",
+                    "color": "#1167b1",
+                    "action": {
+                      "type": "postback",
+                      "label": "Sailor C.",
+                      "data": "Sailor C."
+                    },
+                    "style": "link",
+                    "offsetBottom": "10px",
+                    "flex": 3
+                  },
+                  {
+                    "type": "text",
+                    "text": "30元",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "weight": "bold",
+                    "flex": 2
+                  },
+                  {
+                    "type": "text",
+                    "text": "已收款",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "flex": 2
+                  }
+                ],
+                "margin": "none"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "button",
+                    "color": "#1167b1",
+                    "action": {
+                      "type": "postback",
+                      "label": "地獄吉娃娃",
+                      "data": "地獄吉娃娃"
+                    },
+                    "style": "link",
+                    "offsetBottom": "10px",
+                    "flex": 3
+                  },
+                  {
+                    "type": "text",
+                    "text": "102元",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "weight": "bold",
+                    "flex": 2
+                  },
+                  {
+                    "type": "text",
+                    "text": "已收款",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "flex": 2
+                  }
+                ],
+                "margin": "none"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "button",
+                    "color": "#1167b1",
+                    "action": {
+                      "type": "postback",
+                      "label": "夜晚的魷魚 不.",
+                      "data": "夜晚的魷魚 不."
+                    },
+                    "style": "link",
+                    "offsetBottom": "10px",
+                    "flex": 3
+                  },
+                  {
+                    "type": "text",
+                    "text": "34元",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "weight": "bold",
+                    "flex": 2
+                  },
+                  {
+                    "type": "text",
+                    "text": "已收款",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "flex": 2
+                  }
+                ],
+                "margin": "none"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "button",
+                    "color": "#1167b1",
+                    "action": {
+                      "type": "postback",
+                      "label": "巧如",
+                      "data": "巧如"
+                    },
+                    "style": "link",
+                    "offsetBottom": "10px",
+                    "flex": 3
+                  },
+                  {
+                    "type": "text",
+                    "text": "51元",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "weight": "bold",
+                    "flex": 2
+                  },
+                  {
+                    "type": "text",
+                    "text": "已收款",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "flex": 2
+                  }
+                ],
+                "margin": "none"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "button",
+                    "color": "#1167b1",
+                    "action": {
+                      "type": "postback",
+                      "label": "Liwe",
+                      "data": "Liwe"
+                    },
+                    "style": "link",
+                    "offsetBottom": "10px",
+                    "flex": 3
+                  },
+                  {
+                    "type": "text",
+                    "text": "34元",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "weight": "bold",
+                    "flex": 2
+                  },
+                  {
+                    "type": "text",
+                    "text": "未收款",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#9e0200",
+                    "flex": 2
+                  }
+                ],
+                "margin": "none"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "button",
+                    "color": "#1167b1",
+                    "action": {
+                      "type": "postback",
+                      "label": "珈",
+                      "data": "珈"
+                    },
+                    "style": "link",
+                    "offsetBottom": "10px",
+                    "flex": 3
+                  },
+                  {
+                    "type": "text",
+                    "text": "59元",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "weight": "bold",
+                    "flex": 2
+                  },
+                  {
+                    "type": "text",
+                    "text": "已收款",
+                    "align": "center",
+                    "size": "md",
+                    "color": "#040420",
+                    "flex": 2
+                  }
+                ],
+                "margin": "none"
+              }
+            ]
+          },
+          {
+            "type": "separator"
+          }
+        ],
+        "paddingStart": "xs",
+        "paddingEnd": "xs"
+      },
+      "footer": {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "總金額:418元",
+                "weight": "bold",
+                "size": "md"
+              },
+              {
+                "type": "text",
+                "align": "end",
+                "text": "未收款:1人",
+                "color": "#9e0200",
+                "weight": "bold",
+                "size": "md"
+              }
+            ]
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "filler"
+              },
+              {
+                "type": "separator"
+              },
+              {
+                "type": "button",
+                "style": "primary",
+                "action": {
+                  "type": "uri",
+                  "label": "LINE Pay",
+                  "uri": "https://line.me/R/ch/1586237320/?forwardPath=/c2c/transfer&no=28480041061"
+                }
+              }
+            ],
+            "spacing": "sm"
+          }
+        ]
+      }
+    }
+  }
+]

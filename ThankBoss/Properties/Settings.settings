@@ -1,0 +1,15 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="ThankBoss.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="ChannelAccessToken" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">MYvQh/IsoLC+rnKJAOtSqVb3VR91XkdYKfnxEBzGsnCTVbfo3y8V/ATjmMCm38Jf1TedVrSB4OjV8PLaInHu0N0cqAiJjSoiIDsWibM7xCSeRGDQzb0LcY5SEjvC4rLUhmKM+ZBvTBaMylLKSmqDbQdB04t89/1O/w1cDnyilFU=</Value>
+    </Setting>
+    <Setting Name="AdminUserId" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">U9ae631d23b5c0de7185cf215691b76bf</Value>
+    </Setting>
+    <Setting Name="Url" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">https://07b4-61-218-249-187.ngrok-free.app</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

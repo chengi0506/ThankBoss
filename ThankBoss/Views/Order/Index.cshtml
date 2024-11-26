@@ -1,0 +1,26 @@
+﻿@model ThankBoss.Models.OrderModel
+
+@{
+    ViewBag.Title = "Generate JSON Output";
+}
+
+<h2>Generate JSON Output</h2>
+
+@using (Html.BeginForm("GenerateJson", "Order", FormMethod.Post))
+{
+    <div class="form-group">
+        @Html.LabelFor(model => model.InputContent)
+        @Html.TextAreaFor(model => model.InputContent, new { @class = "form-control", rows = 10 })
+        @Html.ValidationMessageFor(model => model.InputContent, "", new { @class = "text-danger" })
+    </div>
+
+    <button type="submit" class="btn btn-primary">Generate JSON</button>
+}
+
+@if (!string.IsNullOrEmpty(ViewBag.JsonOutput))
+{
+    <div class="mt-4">
+        <h3>Generated JSON Output</h3>
+        <pre>@Html.Raw(ViewBag.JsonOutput)</pre>
+    </div>
+}

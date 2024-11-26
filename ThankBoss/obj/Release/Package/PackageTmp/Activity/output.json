@@ -1,0 +1,99 @@
+[
+  {
+    "type": "flex",
+    "altText": "不在勤名單",
+    "contents": {
+      "type": "bubble",
+      "hero": {
+        "type": "image",
+        "url": "https://posfrontver.fcloud.org.tw/Unit/holiday.jpg",
+        "size": "xxl",
+        "aspectRatio": "50:50"
+      },
+      "body": {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "2024/04/30不在勤名單：\n",
+            "weight": "bold",
+            "size": "xl"
+          },
+          {
+            "type": "separator"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "text",
+                "text": "1.設計部 陳O欣",
+                "margin": "md",
+                "color": "#040420",
+                "weight": "regular"
+              },
+              {
+                "type": "text",
+                "text": "全日:公差(113年度會員單位國外研習考察(屏東縣農會團)隨團服務)",
+                "margin": "md",
+                "color": "#040420",
+                "weight": "regular"
+              },
+              {
+                "type": "text",
+                "text": "2.PC組 毛O源  全日:休假",
+                "margin": "md",
+                "color": "#040420",
+                "weight": "regular"
+              },
+              {
+                "type": "text",
+                "text": "3.PC組 毛O源  全日:休假",
+                "margin": "md",
+                "color": "#040420",
+                "weight": "regular"
+              },
+              {
+                "type": "text",
+                "text": "4.PC組 王O義  全日:公假",
+                "margin": "md",
+                "color": "#040420",
+                "weight": "regular"
+              },
+              {
+                "type": "text",
+                "text": "5.系統組 楊O德  全日:休假",
+                "margin": "md",
+                "color": "#040420",
+                "weight": "regular"
+              },
+              {
+                "type": "text",
+                "text": "6.跨行組 巫O原",
+                "margin": "md",
+                "color": "#040420",
+                "weight": "regular"
+              },
+              {
+                "type": "text",
+                "text": "全日:公差(擔任113年度會員單位國外研習考察(西班牙-研習考察10日行程，屏東南州團)隨團服務)",
+                "margin": "md",
+                "color": "#040420",
+                "weight": "regular"
+              },
+              {
+                "type": "text",
+                "text": "7.執行長室 蔡O奇  下午:休假",
+                "margin": "md",
+                "color": "#040420",
+                "weight": "regular"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+]
